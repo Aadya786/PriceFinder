@@ -3,22 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Price Tracker</title>
+    <title>Book SaleFinder 📚</title>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
             background-color: #f4f6f9;
             color: #333;
-            max-width: 500px;
-            margin: 50px auto;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .container {
+            background: white;
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            background: white;
         }
         h2 { text-align: center; color: #4F46E5; margin-bottom: 25px; }
         label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 5px; }
-        input {
+        input, select {
             width: 100%;
             padding: 12px;
             margin-bottom: 15px;
@@ -38,8 +41,14 @@
             border-radius: 6px;
             cursor: pointer;
             transition: background 0.2s;
+            margin-top: 10px;
         }
         button:hover { background-color: #4338CA; }
+        .secondary-btn {
+            background-color: #10B981;
+            margin-top: 20px;
+        }
+        .secondary-btn:hover { background-color: #059669; }
         #status {
             margin-top: 20px;
             padding: 15px;
@@ -48,42 +57,194 @@
             text-align: center;
             font-weight: 500;
         }
+        .section-header {
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+            margin-top: 30px;
+            color: #1e293b;
+        }
+        .book-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .book-details { flex-grow: 1; }
+        .book-title { font-weight: bold; color: #1e293b; text-decoration: none; }
+        .book-title:hover { text-decoration: underline; }
+        .book-price { color: #475569; font-size: 14px; margin-top: 4px; }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #64748b;
+        }
+        .checkbox-container input {
+            width: auto;
+            margin-right: 6px;
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
 
-    <h2>📚 Book Price Tracker</h2>
-    
-    <label for="email">Email Address</label>
-    <input type="email" id="email" placeholder="you@example.com" required>
+    <div class="container">
+        <h2>📚 Price Finder + Notifier</h2>
+        <p style="text-align: center; color: #64748b; margin-top: -15px;">Find books from Books to Scrape and track alerts!</p>
+        
+        <label for="email">Your Email Address (Where to send alerts):</label>
+        <input type="email" id="email" placeholder="example@gmail.com" required>
 
-    <label for="keyword">Book Keyword</label>
-    <input type="text" id="keyword" placeholder="e.g., Attic, Love, History" required>
+        <label for="keyword">Book Title / Keyword:</label>
+        <input type="text" id="keyword" placeholder="e.g., Attic, Music, History" required>
 
-    <label for="price">Budget Limit (£)</label>
-    <input type="number" id="price" value="30" min="1" step="0.5">
+        <label for="price">Alert Me If Price Is Under (£):</label>
+        <input type="number" id="price" value="30" min="5" max="60" step="1">
 
-    <button onclick="startScraper()">Start Tracking & Alert Me</button>
+        <button onclick="searchBooks()">Search and Track</button>
 
-    <div id="status"></div>
+        <div id="status"></div>
+
+        <div id="results-area" style="display:none;">
+            <h3 class="section-header">Deals Found! (Below Budget)</h3>
+            <div id="below-budget-container"></div>
+
+            <h3 class="section-header">Out of Budget (Above Budget)</h3>
+            <div id="above-budget-container"></div>
+
+            <button class="secondary-btn" id="email-selected-btn" onclick="sendSelectedAlerts()">Send Email Alerts for Selected Books</button>
+        </div>
+    </div>
 
     <script>
-        async function startScraper() {
+        let allFoundBooks = [];
+
+        async function searchBooks() {
             const statusDiv = document.getElementById("status");
+            const resultsArea = document.getElementById("results-area");
+            
             statusDiv.style.display = "block";
             statusDiv.style.backgroundColor = "#E0F2FE";
             statusDiv.style.color = "#0369A1";
-            statusDiv.innerText = "🔍 Scraping books and checking prices...";
+            statusDiv.innerText = "🔍 Searching the bookstore catalog...";
+            resultsArea.style.display = "none";
 
             try {
                 const response = await fetch('/api/scrape', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        email: document.getElementById("email").value,
-                        keyword: document.getElementById("keyword").value,
-                        price: document.getElementById("price").value
+                        keyword: document.getElementById("keyword").value
                     })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === "success" && data.books.length > 0) {
+                    allFoundBooks = data.books;
+                    renderBooks();
+                    statusDiv.style.display = "none";
+                    resultsArea.style.display = "block";
+                } else {
+                    statusDiv.style.backgroundColor = "#F1F5F9";
+                    statusDiv.style.color = "#475569";
+                    statusDiv.innerText = "ℹ️ No books found matching that keyword.";
+                }
+            } catch (err) {
+                statusDiv.style.backgroundColor = "#FEE2E2";
+                statusDiv.style.color = "#B91C1C";
+                statusDiv.innerText = "❌ Scraping error. Please try again.";
+            }
+        }
+
+        function renderBooks() {
+            const limit = parseFloat(document.getElementById("price").value);
+            const belowContainer = document.getElementById("below-budget-container");
+            const aboveContainer = document.getElementById("above-budget-container");
+
+            belowContainer.innerHTML = "";
+            aboveContainer.innerHTML = "";
+
+            let belowCount = 0;
+            let aboveCount = 0;
+
+            allFoundBooks.forEach((book, idx) => {
+                const isBelow = book.price <= limit;
+                const statusType = isBelow ? "Below Budget Match" : "Above Budget Track";
+                
+                const bookHTML = `
+                    <div class="book-item">
+                        <div class="book-details">
+                            <a href="${book.url}" target="_blank" class="book-title">${book.title}</a>
+                            <div class="book-price"><b>Current Price:</b> £${book.price.toFixed(2)} ${!isBelow ? `(Target: Under £${limit.toFixed(2)})` : ''}</div>
+                            <label class="checkbox-container">
+                                <input type="checkbox" class="book-checkbox" data-index="${idx}" data-status="${statusType}">
+                                Add to my custom email list
+                            </label>
+                        </div>
+                    </div>
+                `;
+
+                if (isBelow) {
+                    belowContainer.insertAdjacentHTML('beforeend', bookHTML);
+                    belowCount++;
+                } else {
+                    aboveContainer.insertAdjacentHTML('beforeend', bookHTML);
+                    aboveCount++;
+                }
+            });
+
+            if (belowCount === 0) {
+                belowContainer.innerHTML = "<p style='color: #64748b;'>No matching books are within your budget right now.</p>";
+            }
+            if (aboveCount === 0) {
+                aboveContainer.innerHTML = "<p style='color: #64748b;'>No matching books exceed your budget limits.</p>";
+            }
+        }
+
+        async function sendSelectedAlerts() {
+            const email = document.getElementById("email").value;
+            const statusDiv = document.getElementById("status");
+            
+            if (!email) {
+                alert("Please fill out your email address first!");
+                return;
+            }
+
+            const checkboxes = document.querySelectorAll(".book-checkbox:checked");
+            const selectedBooks = [];
+
+            checkboxes.forEach(cb => {
+                const idx = parseInt(cb.getAttribute("data-index"));
+                const status = cb.getAttribute("data-status");
+                selectedBooks.push({
+                    title: allFoundBooks[idx].title,
+                    price: allFoundBooks[idx].price,
+                    url: allFoundBooks[idx].url,
+                    status: status
+                });
+            });
+
+            if (selectedBooks.length === 0) {
+                alert("Please select at least one book checkbox to email!");
+                return;
+            }
+
+            statusDiv.style.display = "block";
+            statusDiv.style.backgroundColor = "#E0F2FE";
+            statusDiv.style.color = "#0369A1";
+            statusDiv.innerText = "Sending your customized book alert choices...";
+
+            try {
+                const response = await fetch('/api/send-alerts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, books: selectedBooks })
                 });
                 
                 const data = await response.json();
@@ -91,14 +252,12 @@
                 if (data.status === "success") {
                     statusDiv.style.backgroundColor = "#DCFCE7";
                     statusDiv.style.color = "#15803D";
-                    statusDiv.innerHTML = `<b>Success!</b> Checked ${data.total_found} books. Found ${data.deals_found} within your budget, and sent ${data.emails_sent} email alerts!`;
-                } else {
-                    throw new Error("Failed");
+                    statusDiv.innerHTML = `<b>Success!</b> Successfully emailed ${data.emails_sent} custom book alert(s) to <b>${email}</b>!`;
                 }
             } catch (err) {
                 statusDiv.style.backgroundColor = "#FEE2E2";
                 statusDiv.style.color = "#B91C1C";
-                statusDiv.innerText = "Something went wrong. Please check your network and try again.";
+                statusDiv.innerText = "Failed to send email alerts.";
             }
         }
     </script>
