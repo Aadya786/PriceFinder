@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Price Tracker</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            background: white;
+        }
+        h2 { text-align: center; color: #4F46E5; margin-bottom: 25px; }
+        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 5px; }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            background-color: #4F46E5;
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #4338CA; }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+            text-align: center;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>📚 Book Price Tracker</h2>
+    
+    <label for="email">Email Address</label>
+    <input type="email" id="email" placeholder="you@example.com" required>
+
+    <label for="keyword">Book Keyword</label>
+    <input type="text" id="keyword" placeholder="e.g., Attic, Love, History" required>
+
+    <label for="price">Budget Limit (£)</label>
+    <input type="number" id="price" value="30" min="1" step="0.5">
+
+    <button onclick="startScraper()">Start Tracking & Alert Me</button>
+
+    <div id="status"></div>
+
+    <script>
+        async function startScraper() {
+            const statusDiv = document.getElementById("status");
+            statusDiv.style.display = "block";
+            statusDiv.style.backgroundColor = "#E0F2FE";
+            statusDiv.style.color = "#0369A1";
+            statusDiv.innerText = "🔍 Scraping books and checking prices...";
+
+            try {
+                const response = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById("email").value,
+                        keyword: document.getElementById("keyword").value,
+                        price: document.getElementById("price").value
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === "success") {
+                    statusDiv.style.backgroundColor = "#DCFCE7";
+                    statusDiv.style.color = "#15803D";
+                    statusDiv.innerHTML = `<b>Success!</b> Checked ${data.total_found} books. Found ${data.deals_found} within your budget, and sent ${data.emails_sent} email alerts!`;
+                } else {
+                    throw new Error("Failed");
+                }
+            } catch (err) {
+                statusDiv.style.backgroundColor = "#FEE2E2";
+                statusDiv.style.color = "#B91C1C";
+                statusDiv.innerText = "Something went wrong. Please check your network and try again.";
+            }
+        }
+    </script>
+</body>
+</html>
