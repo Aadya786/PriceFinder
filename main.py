@@ -8,8 +8,8 @@ from email.message import EmailMessage
 
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-MAIL_USER = " " # ADD YOUR EMAIL
-MAIL_PASS = " " # ADD YOUR GOOGLE APP PASSWORD
+MAIL_USER = st.secrets["MAIL_USER"]
+MAIL_PASS = st.secrets["MAIL_PASS"]
 MAIL_TO = "recipient_email@gmail.com"
 
 st.set_page_config(page_title="Book SaleFinder", page_icon="📚", layout="centered")
