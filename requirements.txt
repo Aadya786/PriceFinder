@@ -1,5 +1,5 @@
-streamlit
-pandas
+flask
+flask-cors
 requests
 beautifulsoup4
 lxml
