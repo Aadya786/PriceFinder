@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book SaleFinder 📚</title>
+    <title>Book SaleFinder</title>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -131,7 +131,7 @@
             statusDiv.style.display = "block";
             statusDiv.style.backgroundColor = "#E0F2FE";
             statusDiv.style.color = "#0369A1";
-            statusDiv.innerText = "🔍 Searching the bookstore catalog...";
+            statusDiv.innerText = "Searching the bookstore catalog...";
             resultsArea.style.display = "none";
 
             try {
@@ -153,12 +153,12 @@
                 } else {
                     statusDiv.style.backgroundColor = "#F1F5F9";
                     statusDiv.style.color = "#475569";
-                    statusDiv.innerText = "ℹ️ No books found matching that keyword.";
+                    statusDiv.innerText = "No books found matching that keyword.";
                 }
             } catch (err) {
                 statusDiv.style.backgroundColor = "#FEE2E2";
                 statusDiv.style.color = "#B91C1C";
-                statusDiv.innerText = "❌ Scraping error. Please try again.";
+                statusDiv.innerText = "Scraping error. Please try again.";
             }
         }
 
